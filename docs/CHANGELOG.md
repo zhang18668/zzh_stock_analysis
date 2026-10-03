@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 支持在可信反向代理后按 Authentik 用户隔离 SQLite 数据、本地报告与分析任务队列
+- [改进] Web 侧边栏显示当前 Authentik 用户和匿名化租户空间标识，并提供 SSO 退出入口
+
 - [修复] 基本面适配按明确报告期调用 AkShare 业绩预告、快报及机构持股，修正十大股东市场代码并限制结果为目标股票；按真实指标生成快报摘要，避免旧默认日期、公告日期冒充摘要和跨指标错误降级。
 
 - [修复] 桌面后端打包完整收集 MiniRacer 原生运行文件，并在 Windows/macOS 冻结产物中实际执行 JavaScript，防止筹码分布因漏包或版本错配永久失败。

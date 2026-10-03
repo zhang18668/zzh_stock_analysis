@@ -6,7 +6,8 @@ from __future__ import annotations
 import json
 import logging
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
+from src.tenant_context import TenantThreadPoolExecutor as ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple

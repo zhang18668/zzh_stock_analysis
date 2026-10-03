@@ -10,6 +10,14 @@ type AuthContextValue = {
   passwordSet: boolean;
   passwordChangeable: boolean;
   setupState: 'enabled' | 'password_retained' | 'no_password';
+  ssoEnabled: boolean;
+  ssoUser: {
+    username: string;
+    name: string;
+    email: string;
+    groups: string[];
+    tenantKey: string;
+  } | null;
   isLoading: boolean;
   loadError: ParsedApiError | null;
   login: (password: string, passwordConfirm?: string) => Promise<{ success: boolean; error?: ParsedApiError }>;
@@ -44,6 +52,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [passwordSet, setPasswordSet] = useState(false);
   const [passwordChangeable, setPasswordChangeable] = useState(false);
   const [setupState, setSetupState] = useState<'enabled' | 'password_retained' | 'no_password'>('no_password');
+  const [ssoEnabled, setSsoEnabled] = useState(false);
+  const [ssoUser, setSsoUser] = useState<AuthContextValue['ssoUser']>(null);
+  const [ssoLogoutUrl, setSsoLogoutUrl] = useState('/outpost.goauthentik.io/sign_out?rd=/');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<ParsedApiError | null>(null);
 
@@ -57,6 +68,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPasswordSet(status.passwordSet ?? false);
       setPasswordChangeable(status.passwordChangeable ?? false);
       setSetupState(status.setupState);
+      setSsoEnabled(status.ssoEnabled ?? false);
+      setSsoUser(status.ssoUser ?? null);
+      setSsoLogoutUrl(status.ssoLogoutUrl || '/outpost.goauthentik.io/sign_out?rd=/');
       if (status.authEnabled && !status.loggedIn) {
         useStockPoolStore.getState().resetDashboardState();
       }
@@ -67,6 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPasswordSet(false);
       setPasswordChangeable(false);
       setSetupState('no_password');
+      setSsoEnabled(false);
+      setSsoUser(null);
       useStockPoolStore.getState().resetDashboardState();
     } finally {
       setIsLoading(false);
@@ -110,6 +126,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    if (ssoEnabled) {
+      window.location.assign(ssoLogoutUrl);
+      return;
+    }
     let logoutError: unknown = null;
     try {
       await authApi.logout();
@@ -122,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (logoutError && getParsedApiError(logoutError).status !== 401) {
       throw logoutError;
     }
-  }, [fetchStatus]);
+  }, [fetchStatus, ssoEnabled, ssoLogoutUrl]);
 
   return (
     <AuthContext.Provider
@@ -132,6 +152,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         passwordSet,
         passwordChangeable,
         setupState,
+        ssoEnabled,
+        ssoUser,
         isLoading,
         loadError,
         login,

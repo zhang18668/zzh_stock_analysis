@@ -2911,7 +2911,9 @@ class NotificationService(
             filename = f"report_{date_str}.md"
 
         # 确保 reports 目录存在（使用项目根目录下的 reports）
-        reports_dir = Path(__file__).parent.parent / 'reports'
+        from src.tenant_context import tenant_report_dir
+
+        reports_dir = tenant_report_dir(Path(__file__).parent.parent)
         reports_dir.mkdir(parents=True, exist_ok=True)
 
         filepath = reports_dir / filename

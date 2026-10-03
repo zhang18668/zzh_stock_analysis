@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, BarChart3, Bell, BriefcaseBusiness, Gauge, Home, LogOut, MessageSquareQuote, Search, Settings2 } from 'lucide-react';
+import { Activity, BarChart3, Bell, BriefcaseBusiness, Gauge, Home, LogOut, MessageSquareQuote, Search, Settings2, UserCircle } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { SCREENING_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, screeningApi } from '../../api/screening';
 import { useAuth } from '../../contexts/AuthContext';
@@ -40,7 +40,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {
-  const { authEnabled, logout } = useAuth();
+  const { authEnabled, ssoEnabled, ssoUser, logout } = useAuth();
   const { t } = useUiLanguage();
   const completionBadge = useAgentChatStore((state) => state.completionBadge);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -171,7 +171,25 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
         />
       </nav>
 
-      {authEnabled ? (
+      {ssoEnabled && ssoUser ? (
+        <div
+          className={cn(
+            'mt-5 flex min-w-0 items-center rounded-2xl border border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] text-sm text-foreground',
+            collapsed || isRail ? 'h-11 justify-center px-0' : 'gap-3 px-3 py-2.5'
+          )}
+          title={`${ssoUser.name || ssoUser.username || ssoUser.email} · ${t('layout.tenantSpace')} ${ssoUser.tenantKey}`}
+        >
+          <UserCircle className={itemIconClass} />
+          {!collapsed && !isRail ? (
+            <div className="min-w-0">
+              <p className="truncate font-medium">{ssoUser.name || ssoUser.username || ssoUser.email}</p>
+              <p className="truncate text-xs text-secondary-text">{t('layout.tenantSpace')} {ssoUser.tenantKey}</p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {authEnabled || ssoEnabled ? (
         <button
           type="button"
           onClick={() => setShowLogoutConfirm(true)}

@@ -16,6 +16,7 @@ from contextlib import contextmanager
 import hashlib
 import json
 import logging
+from pathlib import Path
 import threading
 import time
 from datetime import datetime, date, timedelta, timezone
@@ -58,6 +59,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 
 from src.agent.provider_trace import PROVIDER_TRACE_RETENTION_LIMIT
 from src.config import get_config
+from src.tenant_context import get_tenant_key, tenant_data_dir, tenant_isolation_enabled
 from src.schemas.decision_profile import extract_legacy_decision_profile
 from src.utils.sniper_points import extract_sniper_points, parse_sniper_value
 
@@ -1318,15 +1320,26 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
     """
     
     _instance: Optional['DatabaseManager'] = None
+    _instances: Dict[str, 'DatabaseManager'] = {}
     _init_lock = threading.RLock()
     _initialized: bool = False
     
     def __new__(cls, *args, **kwargs):
         """单例模式实现"""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
+        key = get_tenant_key()
+        if key == "default":
+            if cls._instance is None:
+                cls._instances.pop(key, None)
+            elif cls._instances.get(key) is not cls._instance:
+                cls._instances[key] = cls._instance
+        if key not in cls._instances:
+            instance = super().__new__(cls)
+            instance._initialized = False
+            instance._instance_key = key
+            cls._instances[key] = instance
+            if key == "default":
+                cls._instance = instance
+        return cls._instances[key]
     
     def __init__(self, db_url: Optional[str] = None):
         """
@@ -1344,6 +1357,10 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             config = get_config()
             if db_url is None:
                 db_url = config.get_db_url()
+                if tenant_isolation_enabled() and get_tenant_key() != "default":
+                    tenant_dir = tenant_data_dir(Path(config.database_path).parent)
+                    tenant_dir.mkdir(parents=True, exist_ok=True)
+                    db_url = f"sqlite:///{(tenant_dir / Path(config.database_path).name).absolute()}"
 
             self._db_url = db_url
             self._sqlite_wal_enabled = config.sqlite_wal_enabled
@@ -1400,7 +1417,9 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
                 logger.warning("数据库初始化失败后的引擎清理也失败: %s", cleanup_exc)
             self._engine = None
             self._SessionLocal = None
-            self.__class__._instance = None
+            self.__class__._instances.pop(getattr(self, "_instance_key", "default"), None)
+            if self.__class__._instance is self:
+                self.__class__._instance = None
             raise
 
     def _ensure_schema_migration_record(self) -> None:
@@ -2147,19 +2166,18 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
     def get_instance(cls) -> 'DatabaseManager':
         """获取单例实例"""
         with cls._init_lock:
-            if cls._instance is None:
-                cls()
-            return cls._instance
+            return cls()
     
     @classmethod
     def reset_instance(cls) -> None:
         """重置单例（用于测试）"""
         with cls._init_lock:
-            if cls._instance is not None:
-                if hasattr(cls._instance, '_engine') and cls._instance._engine is not None:
-                    cls._instance._engine.dispose()
-                cls._instance._initialized = False
-                cls._instance = None
+            for instance in list(cls._instances.values()):
+                if hasattr(instance, '_engine') and instance._engine is not None:
+                    instance._engine.dispose()
+                instance._initialized = False
+            cls._instances.clear()
+            cls._instance = None
 
     @classmethod
     def _cleanup_engine(cls, engine) -> None:

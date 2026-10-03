@@ -6,6 +6,15 @@ export type AuthStatusResponse = {
   passwordSet?: boolean;
   passwordChangeable?: boolean;
   setupState: 'enabled' | 'password_retained' | 'no_password';
+  ssoEnabled?: boolean;
+  ssoUser?: {
+    username: string;
+    name: string;
+    email: string;
+    groups: string[];
+    tenantKey: string;
+  } | null;
+  ssoLogoutUrl?: string;
 };
 
 export const authApi = {

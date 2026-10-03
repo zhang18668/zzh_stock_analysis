@@ -6,7 +6,8 @@ Concurrent scheduler for specialist strategy-skill agents.
 from __future__ import annotations
 
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
+from src.tenant_context import TenantThreadPoolExecutor as ThreadPoolExecutor
 from contextvars import copy_context
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional

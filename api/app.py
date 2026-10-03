@@ -165,6 +165,7 @@ def _warn_if_open_cors_without_auth() -> None:
 
 from api.v1 import api_v1_router
 from api.middlewares.auth import add_auth_middleware
+from api.middlewares.tenant import add_tenant_middleware
 from api.middlewares.error_handler import add_error_handlers
 from api.v1.schemas.common import HealthResponse
 from src.auth import is_auth_enabled
@@ -374,6 +375,7 @@ def create_app(static_dir: Optional[Path] = None) -> FastAPI:
         allow_headers=["*"],
     )
 
+    add_tenant_middleware(app)
     add_auth_middleware(app)
     
     # ============================================================

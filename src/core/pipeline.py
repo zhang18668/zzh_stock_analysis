@@ -18,7 +18,8 @@ import time
 from pathlib import Path
 import uuid
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
+from src.tenant_context import TenantThreadPoolExecutor as ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import List, Dict, Any, Optional, Tuple, Callable
@@ -3781,7 +3782,9 @@ class StockAnalysisPipeline:
     @staticmethod
     def _report_output_dir() -> Path:
         """Default report output directory (kept same as NotificationService behavior)."""
-        return Path(__file__).resolve().parents[2] / 'reports'
+        from src.tenant_context import tenant_report_dir
+
+        return tenant_report_dir(Path(__file__).resolve().parents[2])
 
     @classmethod
     def _fallback_save_report_to_file(

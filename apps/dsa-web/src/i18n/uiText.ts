@@ -87,6 +87,7 @@ const zh = {
   'layout.logoutConfirm': '确认退出',
   'layout.logoutMessage': '确认退出当前登录状态吗？退出后需要重新输入密码。',
   'layout.logoutTitle': '退出登录',
+  'layout.tenantSpace': '独立空间',
 
   'usage.breakdown': 'Breakdown',
   'usage.callType.agent': '问股 Agent',
@@ -1046,6 +1047,7 @@ const en: Record<UiTextKey, string> = {
   'layout.logoutConfirm': 'Log out',
   'layout.logoutMessage': 'Log out of the current session? You will need to enter the password again.',
   'layout.logoutTitle': 'Log out',
+  'layout.tenantSpace': 'Isolated workspace',
 
   'usage.breakdown': 'Breakdown',
   'usage.callType.agent': 'Ask Agent',

@@ -22,7 +22,8 @@ import re
 import time
 import threading
 import contextvars
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from concurrent.futures import FIRST_COMPLETED, wait
+from src.tenant_context import TenantThreadPoolExecutor as ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 

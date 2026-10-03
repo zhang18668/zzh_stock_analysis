@@ -18,7 +18,7 @@ import copy
 import logging
 import threading
 import uuid
-from concurrent.futures import ThreadPoolExecutor, Future
+from concurrent.futures import Future
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -35,6 +35,7 @@ from src.services.run_diagnostics import (
 )
 from src.utils.analysis_metadata import SELECTION_SOURCES
 from src.services.stock_code_utils import resolve_index_stock_code_for_analysis
+from src.tenant_context import TenantThreadPoolExecutor as ThreadPoolExecutor, get_tenant_key
 
 logger = logging.getLogger(__name__)
 
@@ -220,14 +221,25 @@ class AnalysisTaskQueue:
     """
     
     _instance: Optional['AnalysisTaskQueue'] = None
+    _instances: Dict[str, 'AnalysisTaskQueue'] = {}
     _instance_lock = threading.Lock()
     
     def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
+        key = get_tenant_key()
+        if key == "default":
+            if cls._instance is None:
+                cls._instances.pop(key, None)
+            elif cls._instances.get(key) is not cls._instance:
+                cls._instances[key] = cls._instance
+        if key not in cls._instances:
             with cls._instance_lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-        return cls._instance
+                if key not in cls._instances:
+                    instance = super().__new__(cls)
+                    instance._tenant_key = key
+                    cls._instances[key] = instance
+                    if key == "default":
+                        cls._instance = instance
+        return cls._instances[key]
     
     def __init__(self, max_workers: int = 3):
         # 防止重复初始化
@@ -587,7 +599,9 @@ class AnalysisTaskQueue:
                 raise ValueError(f"任务 ID 已存在: {task_id}")
             self._tasks[task_id] = task_info
             try:
-                future = self.executor.submit(self._execute_background_task, task_id, run_task)
+                future = self.executor.submit(
+                    self._execute_background_task, task_id, run_task
+                )
             except Exception:
                 del self._tasks[task_id]
                 raise

@@ -33,6 +33,7 @@ from src.auth import (
 )
 from src.config import Config, setup_env
 from src.core.config_manager import ConfigManager
+from src.tenant_context import get_tenant_key, tenant_isolation_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -173,12 +174,30 @@ def _get_auth_status_dict(request: Request | None = None) -> dict:
     else:
         setup_state = "no_password"
 
+    sso_uid = request.headers.get("X-authentik-uid", "").strip() if request else ""
+    sso_enabled = tenant_isolation_enabled() and bool(sso_uid)
+    groups_header = request.headers.get("X-authentik-groups", "") if request else ""
+    groups = [group.strip() for group in groups_header.replace("|", ",").split(",") if group.strip()]
+
     return {
         "authEnabled": auth_enabled,
         "loggedIn": logged_in,
         "passwordSet": _password_set_for_response(auth_enabled),
         "passwordChangeable": is_password_changeable() if auth_enabled else False,
         "setupState": setup_state,
+        "ssoEnabled": sso_enabled,
+        "ssoUser": (
+            {
+                "username": request.headers.get("X-authentik-username", "").strip(),
+                "name": request.headers.get("X-authentik-name", "").strip(),
+                "email": request.headers.get("X-authentik-email", "").strip(),
+                "groups": groups,
+                "tenantKey": get_tenant_key()[:12],
+            }
+            if sso_enabled and request
+            else None
+        ),
+        "ssoLogoutUrl": "/outpost.goauthentik.io/sign_out?rd=/",
     }
 
 
